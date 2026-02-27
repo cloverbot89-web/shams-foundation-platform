@@ -1,9 +1,9 @@
 # Shams Foundation Collaboration Platform
 ## Product Requirements Document (PRD)
 
-**Document Version:** 1.0  
-**Date:** 2026-02-27  
-**Status:** Draft  
+**Document Version:** 2.0
+**Date:** 2026-02-27
+**Status:** Approved for Development
 
 ---
 
@@ -117,10 +117,8 @@ Existing solutions (email, spreadsheets, separate tools) create silos, duplicate
   - Track individual donations/pledges
   - Campaign progress toward goals
   - Donor relationship timeline
-  - Mercury API integration (if configured)
-    - Auto-sync donation data if Mercury account linked
-    - Display total raised, pending, and goals
-  - Manual entry fallback for offline donations
+  - Manual entry for donations
+  - Mercury API integration (Phase 2) for auto-syncing donation data
 
 ---
 
@@ -167,6 +165,8 @@ Existing solutions (email, spreadsheets, separate tools) create silos, duplicate
 
 ### 4.6 AI-Powered Chat Bot & Search
 **Requirement:** Search and summarize context, provide intelligent assistance
+
+**IMPORTANT — Sandboxing Requirement:** The chat bot is strictly sandboxed to platform data. It must ONLY answer questions using data that exists within the platform (tasks, comments, files, activities, metrics). It must NOT access external websites, APIs, or information sources. It must NOT perform web searches or reference information outside the platform corpus. All responses must be grounded in and cite actual platform data. If the bot cannot answer a question from platform data alone, it must say so.
 
 - **Unified Search**
   - Search tasks, comments, files, activities across entire platform
@@ -217,7 +217,7 @@ Existing solutions (email, spreadsheets, separate tools) create silos, duplicate
 
 ### Information Architecture
 - **Navigation:** Clear primary nav (Dashboard, Tasks, Fundraising, Teams, Resources, Chat)
-- **Hierarchy:** Dashboard → Tasks/Activities → Details
+- **Hierarchy:** Dashboard > Tasks/Activities > Details
 - **Discoverability:** Search and filter prominent on every view
 
 ### Design Principles
@@ -237,72 +237,258 @@ Existing solutions (email, spreadsheets, separate tools) create silos, duplicate
 ## 6. Technical Architecture
 
 ### Frontend
-- **Framework:** React or Vue (fast, lightweight)
-- **Real-time Updates:** WebSocket for live notifications
-- **Offline Support:** Service worker for offline task viewing/editing
-- **Mobile:** Responsive design, PWA for app-like experience
+- **Framework:** Next.js 15 (React-based, App Router)
+- **Styling:** Tailwind CSS + shadcn/ui component library
+- **State Management:** React Server Components + client state where needed
+- **Real-time Updates:** Polling for MVP; WebSocket upgrade in Phase 2 if needed
+- **Mobile:** Responsive design, PWA consideration deferred to future
 
 ### Backend
-- **API:** REST or GraphQL
-- **Database:** PostgreSQL for relational data (tasks, users, files)
-- **Search:** Elasticsearch or similar for full-text search and AI chat context
-- **Storage:** S3-compatible for file uploads
-- **Authentication:** OAuth 2.0 (Google), JWT tokens
+- **API:** Next.js API Routes (REST)
+- **ORM:** Prisma (type-safe database access, migration tooling)
+- **Database:** PostgreSQL (hosted via Supabase or Neon)
+- **Search:** PostgreSQL full-text search for MVP; vector search added in Phase 3
+- **Storage:** Supabase Storage or S3-compatible for file uploads
+- **Authentication:** NextAuth.js with Google OAuth 2.0 provider
 
 ### Integrations
-- **Google OAuth:** Authentication
-- **Mercury API:** Donation/fundraising data sync (optional)
-- **Google Drive:** File embedding and sync
-- **Slack/Email:** Notifications (phase 2)
+- **Google OAuth:** Authentication (Phase 1)
+- **Mercury API:** Donation/fundraising data sync (Phase 2)
+- **Google Drive:** File embedding and sync (Phase 4)
+- **Email Notifications:** Resend or similar (Phase 2)
 
 ### AI/Chat Bot
-- **LLM Integration:** OpenAI API or similar for chat capabilities
-- **Vector Search:** Embeddings for semantic search over platform content
-- **RAG (Retrieval Augmented Generation):** Ground responses in actual platform data
+- **LLM Integration:** Claude API (Anthropic) for chat capabilities
+- **Sandboxing:** Bot is restricted to platform data only — no external web access, no external API calls, no web search. All queries are answered exclusively from the platform corpus.
+- **Search Strategy:** PostgreSQL full-text search for MVP; vector embeddings (pgvector) added in Phase 3 for semantic search
+- **RAG (Retrieval Augmented Generation):** Ground all responses in actual platform data with citations
 - **Context Window:** Maintain conversation history within session
+
+### Deployment
+- **Hosting:** Vercel (optimized for Next.js)
+- **Database:** Supabase (managed PostgreSQL + auth + storage)
+- **URL:** Default Vercel URL until custom domain is configured
+- **CI/CD:** Vercel Git integration (auto-deploy on push to main)
 
 ---
 
-## 7. Data Security & Privacy
+## 7. Data Schema
+
+**IMPORTANT — Schema Authority:** This schema is the canonical source of truth for all platform data. All development — including API routes, database migrations, UI components, and AI chat bot queries — MUST conform to these models. Any schema changes require updating this document FIRST, then implementing the migration. Do not add columns, tables, or relationships without updating this section.
+
+### 7.1 User
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| email | String (unique) | Google account email |
+| name | String | Display name (from Google profile) |
+| avatarUrl | String? | Profile picture URL |
+| role | Enum: ADMIN, COORDINATOR, CONTRIBUTOR, VIEWER | Platform role |
+| invitedBy | UUID? | FK to User who sent the invite |
+| inviteToken | String? | One-time invite token |
+| lastLoginAt | DateTime? | Last login timestamp |
+| createdAt | DateTime | Account creation timestamp |
+| updatedAt | DateTime | Last update timestamp |
+
+### 7.2 Team
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| name | String | Team name (e.g., "Fundraising Team") |
+| description | String? | Team purpose/description |
+| createdBy | UUID | FK to User who created the team |
+| createdAt | DateTime | Creation timestamp |
+| updatedAt | DateTime | Last update timestamp |
+
+### 7.3 TeamMember (join table)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| teamId | UUID | FK to Team |
+| userId | UUID | FK to User |
+| role | Enum: LEAD, MEMBER | Role within the team |
+| joinedAt | DateTime | When user joined the team |
+
+### 7.4 Task
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| title | String | Task title |
+| description | String? | Detailed description (Markdown supported) |
+| status | Enum: NOT_STARTED, IN_PROGRESS, DONE, BLOCKED | Current status |
+| priority | Enum: LOW, MEDIUM, HIGH, URGENT | Priority level |
+| category | Enum: FUNDRAISING, OUTREACH, PROGRAM, RESEARCH, ADMIN, OTHER | Task category |
+| dueDate | DateTime? | Deadline |
+| assigneeId | UUID? | FK to User assigned to the task |
+| createdBy | UUID | FK to User who created the task |
+| teamId | UUID? | FK to Team (optional team association) |
+| parentTaskId | UUID? | FK to Task for subtasks/dependencies |
+| createdAt | DateTime | Creation timestamp |
+| updatedAt | DateTime | Last update timestamp |
+
+### 7.5 Comment
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| content | String | Comment text (Markdown supported) |
+| taskId | UUID | FK to Task |
+| authorId | UUID | FK to User |
+| parentCommentId | UUID? | FK to Comment for threading |
+| createdAt | DateTime | Creation timestamp |
+| updatedAt | DateTime | Last update timestamp |
+
+### 7.6 Activity
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| type | Enum: TASK_CREATED, TASK_UPDATED, TASK_COMPLETED, COMMENT_ADDED, FILE_UPLOADED, MEMBER_JOINED, STATUS_CHANGED | Activity type |
+| description | String | Human-readable description of what happened |
+| userId | UUID | FK to User who performed the action |
+| taskId | UUID? | FK to Task (if task-related) |
+| teamId | UUID? | FK to Team (if team-related) |
+| metadata | JSON? | Additional context (e.g., old/new status for status changes) |
+| createdAt | DateTime | When the activity occurred |
+
+### 7.7 File
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| filename | String | Original filename |
+| storageKey | String | Key/path in storage bucket |
+| mimeType | String | File MIME type |
+| sizeBytes | Int | File size in bytes |
+| taskId | UUID? | FK to Task (if attached to a task) |
+| uploadedBy | UUID | FK to User |
+| createdAt | DateTime | Upload timestamp |
+
+### 7.8 Campaign (Fundraising)
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| name | String | Campaign name |
+| description | String? | Campaign details |
+| goalAmount | Decimal | Target fundraising amount (cents) |
+| currentAmount | Decimal | Amount raised so far (cents) |
+| status | Enum: ACTIVE, PAUSED, COMPLETED | Campaign status |
+| startDate | DateTime | Campaign start date |
+| endDate | DateTime? | Campaign end date |
+| createdBy | UUID | FK to User |
+| createdAt | DateTime | Creation timestamp |
+| updatedAt | DateTime | Last update timestamp |
+
+### 7.9 Donation
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| amount | Decimal | Donation amount (cents) |
+| donorName | String | Donor name |
+| donorEmail | String? | Donor email |
+| campaignId | UUID | FK to Campaign |
+| source | Enum: MANUAL, MERCURY | How the donation was recorded |
+| mercuryTransactionId | String? | Mercury transaction ID (if synced) |
+| notes | String? | Additional context |
+| recordedBy | UUID | FK to User who recorded it |
+| donatedAt | DateTime | When the donation was made |
+| createdAt | DateTime | When the record was created |
+
+### 7.10 Notification
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| userId | UUID | FK to User (recipient) |
+| type | Enum: TASK_ASSIGNED, MENTIONED, DEADLINE_APPROACHING, COMMENT_REPLY, TEAM_INVITE | Notification type |
+| title | String | Notification title |
+| message | String | Notification body |
+| linkUrl | String? | Deep link to relevant page |
+| read | Boolean | Whether user has read it (default: false) |
+| createdAt | DateTime | When the notification was created |
+
+### 7.11 ChatMessage
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| userId | UUID | FK to User |
+| sessionId | String | Groups messages into a conversation session |
+| role | Enum: USER, ASSISTANT | Who sent the message |
+| content | String | Message content |
+| sourceCitations | JSON? | References to platform data used in response |
+| createdAt | DateTime | When the message was sent |
+
+### Schema Relationships Summary
+
+```
+User 1--* Task (assignee)
+User 1--* Task (creator)
+User 1--* Comment (author)
+User 1--* Activity (actor)
+User 1--* File (uploader)
+User *--* Team (via TeamMember)
+Team 1--* Task (optional)
+Task 1--* Comment
+Task 1--* File
+Task 1--* Activity
+Task 1--* Task (parent/subtask)
+Campaign 1--* Donation
+User 1--* Notification (recipient)
+User 1--* ChatMessage
+```
+
+---
+
+## 8. Data Security & Privacy
 
 - **Encryption:** TLS for transit, at-rest encryption for sensitive data
 - **Access Control:** Role-based, enforced server-side
-- **Audit Logs:** All actions logged and traceable
+- **Audit Logs:** All actions logged and traceable via Activity table
 - **GDPR/Privacy:** Compliant with data protection regulations
-- **Backup:** Regular automated backups, disaster recovery plan
+- **Backup:** Regular automated backups via Supabase
 
 ---
 
-## 8. Implementation Phases
+## 9. Implementation Phases
 
-### Phase 1: MVP (Weeks 1-4)
-- User authentication (Google OAuth)
+### Phase 1: MVP
+- User authentication (Google OAuth via NextAuth.js)
 - Task creation, assignment, status tracking
-- Dashboard and task board (Kanban)
-- Comments and basic file uploads
-- Basic notifications
+- Dashboard with personal task view and quick stats
+- Task board (Kanban: Not Started, In Progress, Done, Blocked)
+- Task comments with @mentions
+- Activity log (automatic tracking)
 
-### Phase 2: Enhanced Collaboration (Weeks 5-8)
-- Teams/groups
-- Fundraising tracker
-- Activity timeline/feed
-- Advanced search
+### Phase 2: Enhanced Collaboration
+- Teams/groups with team-specific task boards
+- Fundraising tracker (manual entry + Mercury API integration)
+- File uploads and shared resource library
+- In-app notifications
+- Email digest notifications
+- Advanced search and filtering
 
-### Phase 3: AI & Intelligence (Weeks 9-12)
-- Chat bot with corpus search
+### Phase 3: AI & Intelligence
+- Chat bot with corpus search (Claude API, sandboxed to platform data)
 - Summarization and insights
-- Advanced filtering and reporting
+- Vector search with pgvector for semantic queries
+- Advanced reporting (CSV/PDF export)
 
-### Phase 4: Integrations & Polish (Weeks 13-16)
-- Mercury API integration
-- Google Drive embed
-- Slack/email notifications
-- Mobile app optimization
-- Analytics and metrics
+### Phase 4: Integrations & Polish
+- Google Drive file embedding
+- Calendar view with Google Calendar sync
+- Analytics dashboard with heatmaps and trends
+- Mobile optimization and PWA
 
 ---
 
-## 9. Success Metrics
+## 10. Success Metrics
 
 - **Adoption:** 80% of invited users active within 1 month
 - **Engagement:** Average 2+ actions per user per day
@@ -313,34 +499,39 @@ Existing solutions (email, spreadsheets, separate tools) create silos, duplicate
 
 ---
 
-## 10. Dependencies & Constraints
+## 11. Dependencies & Constraints
 
 - **Google OAuth API:** Requires setup and credentials
-- **Mercury Account (Optional):** For fundraising sync
-- **Hosting:** Cloud infrastructure (AWS, Vercel, Heroku)
+- **Mercury Account:** Required for Phase 2 fundraising sync
+- **Vercel Account:** For hosting and deployment
+- **Supabase Account:** For database, auth, and storage
+- **Anthropic API Key:** Required for Phase 3 chat bot
 - **API Rate Limits:** LLM costs scale with usage
 
 ---
 
-## 11. Known Unknowns / Future Exploration
+## 12. Known Unknowns / Future Exploration
 
-- Offline-first architecture (full sync capability without internet)
+- Offline-first architecture (service worker, full sync capability without internet)
 - Mobile native app (iOS/Android)
 - Integration with CRM systems (Salesforce, HubSpot)
 - Advanced analytics dashboard
 - Custom workflow automation
 - Email-to-task creation
 - Video/voice recording of accomplishments
+- WebSocket real-time updates (upgrade from polling)
 
 ---
 
-## 12. Glossary
+## 13. Glossary
 
 - **Task:** Discrete unit of work with assignee, deadline, category
 - **Activity:** Action taken (task created, comment added, status changed)
 - **Team:** Group of users organized by function
 - **Category:** Label/tag for organizing tasks (Fundraising, Outreach, Program, etc.)
 - **Corpus:** All searchable content (tasks, comments, files, activity)
+- **Campaign:** A fundraising initiative with a target goal and timeline
+- **Donation:** A financial contribution linked to a campaign
 
 ---
 
@@ -383,7 +574,7 @@ Existing solutions (email, spreadsheets, separate tools) create silos, duplicate
 
 **Acceptance Criteria:**
 - Chat bot understands natural language question
-- Searches task/activity corpus for relevant entries
+- Searches task/activity corpus for relevant entries (platform data ONLY)
 - Returns count with source data (linked tasks)
 - Can drill into results for details
 
@@ -391,10 +582,11 @@ Existing solutions (email, spreadsheets, separate tools) create silos, duplicate
 
 ## Document Sign-Off
 
-**Prepared by:** Clover (AI Assistant)  
-**For:** Shams Foundation Leadership  
-**Review Status:** Ready for feedback and iteration  
+**Prepared by:** Clover (AI Assistant)
+**Revised by:** Claude (AI Assistant)
+**For:** Shams Foundation Leadership
+**Review Status:** Approved for Development
 
 ---
 
-*This PRD is a living document. Updates and refinements are welcome and encouraged as we gather feedback from stakeholders.*
+*This PRD is a living document. Updates and refinements are welcome and encouraged as we gather feedback from stakeholders. All schema changes must be reflected here before implementation.*
