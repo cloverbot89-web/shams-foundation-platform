@@ -32,7 +32,7 @@ export function Sidebar() {
                 key={item.label}
                 href={item.disabled ? "#" : item.href}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                  "flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium transition-colors",
                   isActive
                     ? "bg-indigo-600 text-white"
                     : item.disabled

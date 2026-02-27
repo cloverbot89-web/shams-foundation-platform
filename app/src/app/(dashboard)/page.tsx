@@ -15,7 +15,7 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">
+        <h1 className="text-3xl font-bold text-slate-900">
           Welcome back, {session?.user?.name?.split(" ")[0] ?? "there"}
         </h1>
         <p className="text-slate-500 mt-1">
@@ -33,7 +33,7 @@ export default async function DashboardPage() {
               <stat.icon className={`h-5 w-5 ${stat.color}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">{stat.value}</div>
+              <div className="text-4xl font-bold">{stat.value}</div>
             </CardContent>
           </Card>
         ))}

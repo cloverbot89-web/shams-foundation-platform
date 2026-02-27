@@ -44,10 +44,14 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
 
   return (
     <Card
-      className="p-3 cursor-pointer hover:shadow-md transition-shadow"
+      className="p-4 cursor-pointer hover:shadow-md transition-shadow"
       onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } }}
+      aria-label={`Task: ${task.title}, ${task.priority} priority, ${task.category} category`}
     >
-      <p className="font-medium text-sm text-slate-900 mb-2">{task.title}</p>
+      <p className="font-medium text-base text-slate-900 mb-2">{task.title}</p>
 
       <div className="flex flex-wrap gap-1 mb-2">
         <Badge variant="secondary" className={priorityColors[task.priority] ?? ""}>

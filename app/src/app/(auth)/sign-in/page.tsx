@@ -6,8 +6,8 @@ export default function SignInPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Shams Foundation</CardTitle>
-          <CardDescription className="text-base">
+          <CardTitle className="text-3xl font-bold">Shams Foundation</CardTitle>
+          <CardDescription className="text-lg">
             Sign in to collaborate with your team
           </CardDescription>
         </CardHeader>
