@@ -9,7 +9,7 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
   { href: "#", label: "Fundraising", icon: DollarSign, disabled: true },
-  { href: "#", label: "Teams", icon: Users, disabled: true },
+  { href: "/teams", label: "Teams", icon: Users },
 ];
 
 export function MobileSidebar() {
