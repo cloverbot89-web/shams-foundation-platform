@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CheckSquare, DollarSign, Users } from "lucide-react";
+import { LayoutDashboard, CheckSquare, DollarSign, Users, FolderOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -10,6 +10,7 @@ const navItems = [
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/fundraising", label: "Fundraising", icon: DollarSign },
   { href: "/teams", label: "Teams", icon: Users },
+  { href: "/resources", label: "Resources", icon: FolderOpen },
 ];
 
 export function MobileSidebar() {
@@ -29,22 +30,16 @@ export function MobileSidebar() {
           return (
             <Link
               key={item.label}
-              href={item.disabled ? "#" : item.href}
+              href={item.href}
               className={cn(
                 "flex items-center gap-3 px-3 py-3 rounded-md text-base font-medium transition-colors",
                 isActive
                   ? "bg-indigo-600 text-white"
-                  : item.disabled
-                  ? "text-slate-500 cursor-not-allowed"
                   : "text-slate-300 hover:bg-slate-800 hover:text-white"
               )}
-              onClick={item.disabled ? (e) => e.preventDefault() : undefined}
             >
               <item.icon className="h-5 w-5" />
               {item.label}
-              {item.disabled && (
-                <span className="ml-auto text-xs text-slate-600">Soon</span>
-              )}
             </Link>
           );
         })}

@@ -20,7 +20,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns";
-import { Send } from "lucide-react";
+import { Send, Paperclip } from "lucide-react";
+import { FileUpload } from "@/components/files/file-upload";
+import { FileList } from "@/components/files/file-list";
 
 interface Comment {
   id: string;
@@ -54,6 +56,7 @@ export function TaskDetailDialog({ taskId, open, onOpenChange, onTaskUpdated }: 
   const [task, setTask] = useState<TaskDetail | null>(null);
   const [comment, setComment] = useState("");
   const [sendingComment, setSendingComment] = useState(false);
+  const [fileRefreshKey, setFileRefreshKey] = useState(0);
 
   useEffect(() => {
     if (taskId && open) {
@@ -159,6 +162,19 @@ export function TaskDetailDialog({ taskId, open, onOpenChange, onTaskUpdated }: 
 
           <div className="text-xs text-slate-400">
             Created by {task.createdBy.name} on {format(new Date(task.createdAt), "MMM d, yyyy")}
+          </div>
+
+          <Separator />
+
+          <div>
+            <h3 className="font-medium text-sm mb-3 flex items-center gap-2">
+              <Paperclip className="h-4 w-4" />
+              Attachments
+            </h3>
+            <FileUpload taskId={task.id} onFileUploaded={() => setFileRefreshKey((k) => k + 1)} />
+            <div className="mt-3">
+              <FileList taskId={task.id} refreshKey={fileRefreshKey} />
+            </div>
           </div>
 
           <Separator />
