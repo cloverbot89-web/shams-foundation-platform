@@ -13,12 +13,19 @@ import { TaskDetailDialog } from "./task-detail-dialog";
 interface Task {
   id: string;
   title: string;
+  description: string | null;
   status: string;
   priority: string;
   category: string;
   dueDate: string | null;
   assignee: { id: string; name: string; avatarUrl: string | null; image: string | null } | null;
   _count?: { comments: number };
+}
+
+interface KanbanBoardProps {
+  search?: string;
+  priority?: string;
+  category?: string;
 }
 
 const columns = [
@@ -28,18 +35,21 @@ const columns = [
   { id: "BLOCKED", label: "Blocked", color: "bg-red-200" },
 ];
 
-export function KanbanBoard() {
+export function KanbanBoard({ search = "", priority = "ALL", category = "ALL" }: KanbanBoardProps) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
   const fetchTasks = useCallback(async () => {
-    const res = await fetch("/api/tasks");
+    const params = new URLSearchParams();
+    if (category !== "ALL") params.set("category", category);
+    const query = params.toString();
+    const res = await fetch(`/api/tasks${query ? `?${query}` : ""}`);
     if (res.ok) {
       const data = await res.json();
       setTasks(data);
     }
-  }, []);
+  }, [category]);
 
   useEffect(() => {
     fetchTasks();
@@ -68,12 +78,24 @@ export function KanbanBoard() {
     setDetailOpen(true);
   }
 
+  const filteredTasks = tasks.filter((t) => {
+    if (priority !== "ALL" && t.priority !== priority) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      const matchTitle = t.title.toLowerCase().includes(q);
+      const matchDesc = t.description?.toLowerCase().includes(q);
+      const matchAssignee = t.assignee?.name.toLowerCase().includes(q);
+      if (!matchTitle && !matchDesc && !matchAssignee) return false;
+    }
+    return true;
+  });
+
   return (
     <>
       <DragDropContext onDragEnd={handleDragEnd}>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {columns.map((column) => {
-            const columnTasks = tasks.filter((t) => t.status === column.id);
+            const columnTasks = filteredTasks.filter((t) => t.status === column.id);
 
             return (
               <div key={column.id} className="flex flex-col">

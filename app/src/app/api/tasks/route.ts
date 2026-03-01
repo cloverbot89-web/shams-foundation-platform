@@ -12,6 +12,7 @@ export async function GET(req: NextRequest) {
   const status = searchParams.get("status");
   const category = searchParams.get("category");
   const assigneeId = searchParams.get("assigneeId");
+  const search = searchParams.get("search");
 
   const where: Record<string, unknown> = {};
 
@@ -23,6 +24,12 @@ export async function GET(req: NextRequest) {
   if (status) where.status = status;
   if (category) where.category = category;
   if (assigneeId) where.assigneeId = assigneeId;
+  if (search) {
+    where.OR = [
+      { title: { contains: search, mode: "insensitive" } },
+      { description: { contains: search, mode: "insensitive" } },
+    ];
+  }
 
   const tasks = await db.task.findMany({
     where,

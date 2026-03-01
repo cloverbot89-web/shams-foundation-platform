@@ -3,6 +3,7 @@
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { UserMenu } from "@/components/auth/user-menu";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { MobileSidebar } from "./mobile-sidebar";
 
@@ -22,6 +23,7 @@ export function Header() {
 
       <div className="flex-1" />
 
+      <NotificationBell />
       <UserMenu />
     </header>
   );
