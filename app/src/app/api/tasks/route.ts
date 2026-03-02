@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { notifyTaskAssigned } from "@/lib/notifications";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -85,6 +86,11 @@ export async function POST(req: NextRequest) {
       teamId: teamId || null,
     },
   });
+
+  // Notify assignee if task is assigned at creation
+  if (assigneeId && assigneeId !== session.user.id) {
+    notifyTaskAssigned(task.id, title, assigneeId, session.user.name ?? "Someone");
+  }
 
   return NextResponse.json(task, { status: 201 });
 }

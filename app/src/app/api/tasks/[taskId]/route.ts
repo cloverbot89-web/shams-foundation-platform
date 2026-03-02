@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { notifyTaskAssigned } from "@/lib/notifications";
 
 export async function GET(
   _req: NextRequest,
@@ -69,6 +70,11 @@ export async function PATCH(
       createdBy: { select: { id: true, name: true } },
     },
   });
+
+  // Notify on assignment
+  if (assigneeId && assigneeId !== existingTask.assigneeId && assigneeId !== session.user.id) {
+    notifyTaskAssigned(task.id, task.title, assigneeId, session.user.name ?? "Someone");
+  }
 
   // Log status changes
   if (status && status !== existingTask.status) {

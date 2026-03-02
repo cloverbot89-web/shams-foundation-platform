@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { notifyCommentAdded } from "@/lib/notifications";
 
 export async function GET(
   _req: NextRequest,
@@ -66,6 +67,16 @@ export async function POST(
       taskId,
     },
   });
+
+  // Notify task creator and assignee
+  notifyCommentAdded(
+    taskId,
+    task.title,
+    task.createdById,
+    task.assigneeId,
+    session.user.id,
+    session.user.name ?? "Someone"
+  );
 
   return NextResponse.json(comment, { status: 201 });
 }

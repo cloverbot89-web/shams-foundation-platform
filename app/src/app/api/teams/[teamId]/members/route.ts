@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { notifyTeamInvite } from "@/lib/notifications";
 
 export async function POST(
   req: NextRequest,
@@ -55,6 +56,11 @@ export async function POST(
       teamId,
     },
   });
+
+  // Notify the added user
+  if (user.id !== session.user.id) {
+    notifyTeamInvite(user.id, team.name, session.user.name ?? "Someone", teamId);
+  }
 
   return NextResponse.json(member, { status: 201 });
 }
