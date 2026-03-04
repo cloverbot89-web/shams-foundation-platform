@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CheckSquare, DollarSign, Users, FolderOpen } from "lucide-react";
+import { LayoutDashboard, CheckSquare, DollarSign, Users, FolderOpen, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/fundraising", label: "Fundraising", icon: DollarSign },
   { href: "/teams", label: "Teams", icon: Users },
   { href: "/resources", label: "Resources", icon: FolderOpen },
+  { href: "/chat", label: "AI Assistant", icon: MessageSquare },
 ];
 
 export function MobileSidebar() {

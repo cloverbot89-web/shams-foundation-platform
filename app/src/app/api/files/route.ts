@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { writeFile } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
+import { extractTextContent } from "@/lib/file-text-extractor";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -56,6 +57,8 @@ export async function POST(req: NextRequest) {
 
   await writeFile(uploadPath, buffer);
 
+  const textContent = await extractTextContent(uploadPath, file.type || "application/octet-stream");
+
   const dbFile = await db.file.create({
     data: {
       filename: file.name,
@@ -64,6 +67,7 @@ export async function POST(req: NextRequest) {
       sizeBytes: file.size,
       taskId: taskId || null,
       uploadedById: session.user.id,
+      textContent,
     },
     include: {
       uploadedBy: { select: { id: true, name: true } },

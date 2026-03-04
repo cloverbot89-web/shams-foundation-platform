@@ -3,6 +3,12 @@ import Google from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { db } from "@/lib/db";
 
+function getAllowedEmails(): Set<string> | null {
+  const raw = process.env.ALLOWED_EMAILS;
+  if (!raw) return null; // No allowlist = block everyone except existing DB users
+  return new Set(raw.split(",").map((e) => e.trim().toLowerCase()));
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(db),
   providers: [
@@ -18,6 +24,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/sign-in",
   },
   callbacks: {
+    async signIn({ user }) {
+      const email = user.email?.toLowerCase();
+      if (!email) return false;
+
+      // Check if user already exists in DB (always allowed)
+      const existingUser = await db.user.findUnique({ where: { email } });
+      if (existingUser) return true;
+
+      // For new users, check the allowlist
+      const allowed = getAllowedEmails();
+      if (!allowed) return false; // No allowlist configured = no new signups
+      return allowed.has(email);
+    },
     async jwt({ token, user }) {
       if (user?.id) {
         token.id = user.id;

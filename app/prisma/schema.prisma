@@ -152,6 +152,7 @@ model User {
   recordedDonations Donation[]
   notifications     Notification[]
   chatMessages      ChatMessage[]
+  knowledgeArticles KnowledgeArticle[]
   accounts          Account[]
   sessions          Session[]
 
@@ -257,6 +258,7 @@ model File {
   sizeBytes    Int      @map("size_bytes")
   taskId       String?  @map("task_id") @db.Uuid
   uploadedById String   @map("uploaded_by_id") @db.Uuid
+  textContent  String?  @map("text_content")
   createdAt    DateTime @default(now()) @map("created_at")
 
   task       Task? @relation(fields: [taskId], references: [id], onDelete: SetNull)
@@ -330,4 +332,18 @@ model ChatMessage {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("chat_messages")
+}
+
+model KnowledgeArticle {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String
+  content     String
+  tags        String[] @default([])
+  createdById String   @map("created_by_id") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@map("knowledge_articles")
 }
